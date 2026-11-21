@@ -6,7 +6,5 @@ import java.util.Optional;
 
 @Repository
 public interface ChatUserRepository extends JpaRepository<ChatUser, Integer> {
-    boolean existsByNameIgnoreCase(String name);
-
-    Optional<ChatUser> findByUsername(String username);
+    Optional<ChatUser> findBySessionId(String sessionId);
 }

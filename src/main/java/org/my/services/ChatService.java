@@ -25,11 +25,11 @@ public class ChatService {
     }
 
     @Transactional
-    public boolean sendMessage(String username, String message) {
+    public boolean sendMessage(String sessionId, String message) {
         if(message == null || message.isEmpty()) {
             return false;
         }
-        ChatUser user = chatUserRepository.findByUsername(username).orElseThrow();
+        ChatUser user = chatUserRepository.findBySessionId(sessionId).orElseThrow();
         Message newMessage = new Message();
         newMessage.setMessage(message);
         newMessage.setUser(user);

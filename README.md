@@ -6,17 +6,17 @@ Download or fork the project, run your own chat, and adapt the code to your need
 ## Current features
 
 - One shared chat room with a browser interface.
-- Register an account with a name and password, then sign in.
-- Sign out and sign back in from another browser or device.
+- Join with a display name and the shared password set by the chat owner.
+- Sign out and join again from another browser or device without creating an account.
 - Send text messages and view message history with names and timestamps.
-- View registered participants. This is not an online presence indicator.
+- View participants who have joined the chat. This is not an online presence indicator.
 - Messages and participants refresh every two seconds.
 - Store messages and participants in PostgreSQL.
 
-Messages and participants are visible only after signing in. Registration is open:
-anyone who can reach the application can create an account and join the shared room.
-There are no private rooms or administrator approval. Use HTTPS when exposing the chat
-outside a trusted local environment; passwords must not travel over public HTTP connections.
+Messages and participants are visible only after entering the shared chat password.
+Anyone who knows this password can join the shared room. There are no personal accounts,
+private rooms, or verified identities. Use HTTPS when exposing the chat outside a trusted
+local environment; passwords must not travel over public HTTP connections.
 
 ## Quick start with Docker
 
@@ -37,8 +37,10 @@ You do not need to install Java, Gradle, or PostgreSQL on your computer for this
    ```
 
    In Windows PowerShell, use `Copy-Item .env.example .env`.
-   Edit `.env` and replace `DB_PASSWORD` with your own password. Leave `CHAT_PORT=8080`
-   or choose another available port. The `.env` file is ignored by Git.
+   Edit `.env`: replace `DB_PASSWORD` with your database password and set `CHAT_PASSWORD`
+   to a different shared chat password of at least 12 characters. Give only `CHAT_PASSWORD`
+   to participants. Leave `CHAT_PORT=8080` or choose another available port.
+   The `.env` file is ignored by Git.
 
 3. Build and start the chat and database:
 
@@ -51,9 +53,9 @@ You do not need to install Java, Gradle, or PostgreSQL on your computer for this
    Wait for `Started Application` in the log. Press `Ctrl+C` to stop following the log;
    the containers keep running.
 
-4. Open http://localhost:8080 (or your configured port), choose **Create an account**,
-   and register a name and password. Then sign in with the same credentials.
-   To try a second participant, register another account in a private browsing window.
+4. Open http://localhost:8080 (or your configured port), enter a display name and the
+   shared chat password, then choose **Join chat**.
+   To try a second participant, use a private browsing window and the same chat password.
    Another device on the same network can use `http://<server-address>:8080` if the firewall allows it.
 
 The database is available only inside the Compose network. The app waits for the database
@@ -72,32 +74,46 @@ container restarts, rebuilds, and `docker compose down`. Do not add `--volumes` 
 unless you intend to delete the chat data. A volume is not a backup.
 
 Browser sessions are kept in application memory. After an application restart or session
-expiration, sign in again with your existing account; accounts and messages remain in the database.
+expiration, enter a display name and the chat password again; messages remain in the database.
 
-## Accounts and passwords
+## Shared chat password
 
-Names contain 3–32 letters, numbers, underscores or hyphens. Names are case-insensitive
-when signing in and must be unique. Passwords are case-sensitive and require at least
-12 characters. The maximum is 72 UTF-8 bytes, so non-ASCII characters may reach the limit sooner.
-Passwords are stored as salted bcrypt hashes, never as plain text.
+The owner sets `CHAT_PASSWORD` in `.env` for Docker or as an environment variable for a
+local Java run. There is no default password. Startup fails if the password is missing,
+blank, shorter than 12 characters, or longer than 72 UTF-8 bytes. Non-ASCII characters
+may reach the limit sooner. The app hashes the configured password in memory and does
+not save it in participant records.
 
-Use **Sign out** to end the current browser session. The same account can sign in from
-multiple devices. Password reset and account deletion are not implemented yet.
+Participants choose a display name of 1–32 characters and enter the same shared password.
+Names are labels, not accounts: different participants may use the same name. Each successful
+login creates a participant associated with that browser session. **Sign out** ends the
+current session without affecting other participants. There is no registration or personal
+password recovery.
+
+To change the shared password, edit `CHAT_PASSWORD` in `.env`, then recreate the app:
+
+```bash
+docker compose up -d --force-recreate app
+```
+
+Recreating the app ends existing browser sessions. Participants must join again with the
+new password. Messages and participant history remain in PostgreSQL. `docker compose restart`
+alone does not reload changed environment variables. For a local Java run, restart the
+application with the new `CHAT_PASSWORD` value.
 
 The application uses Spring Security sessions and CSRF protection. Spring Security issues
-an `XSRF-TOKEN` cookie; the browser sends it in the `X-XSRF-TOKEN` header with registration,
-login, logout and message requests. The session cookie remains inaccessible to JavaScript.
+an `XSRF-TOKEN` cookie; the browser sends it in the `X-XSRF-TOKEN` header with login, logout
+and message requests. The session cookie remains inaccessible to JavaScript.
 Chat endpoints return `401` when the session is not authenticated.
 
 When deploying behind HTTPS, set `SERVER_SERVLET_SESSION_COOKIE_SECURE=true` in the app
 container's environment so that its session cookie is sent only over HTTPS.
 
-### Upgrading from the version without passwords
+### Upgrading an existing chat
 
-Existing messages and participant records are preserved, including duplicate old names.
-Old records without passwords cannot sign in and cannot be claimed by registering the
-same name. Register a new account with a different name. Database tables are updated
-automatically; no data volume reset is required.
+Existing messages and participant records are preserved. Set `CHAT_PASSWORD` before starting
+the updated app, then join with that password. Earlier personal-account passwords are no
+longer used. Database tables are updated automatically; no data volume reset is required.
 
 After changing source code, rebuild with `docker compose up -d --build`.
 To inspect the running services, use `docker compose ps` or `docker compose logs -f app db`.
@@ -121,6 +137,7 @@ Set the connection variables and start the application:
 export DB_URL='jdbc:postgresql://localhost:5432/chat'
 export DB_USERNAME='chat'
 export DB_PASSWORD='your-database-password'
+export CHAT_PASSWORD='your-shared-chat-password'
 ./gradlew bootRun
 ```
 
@@ -130,6 +147,7 @@ On Windows PowerShell:
 $env:DB_URL = 'jdbc:postgresql://localhost:5432/chat'
 $env:DB_USERNAME = 'chat'
 $env:DB_PASSWORD = 'your-database-password'
+$env:CHAT_PASSWORD = 'your-shared-chat-password'
 .\gradlew.bat bootRun
 ```
 
@@ -151,6 +169,7 @@ In IntelliJ IDEA, import the project as Gradle and select JDK 25 as the Gradle J
 | Variable | Default | Used by |
 | --- | --- | --- |
 | `DB_PASSWORD` | Required for Docker; empty for local runs | PostgreSQL credentials |
+| `CHAT_PASSWORD` | Required; no default | Shared password for all chat participants |
 | `CHAT_PORT` | `8080` | Docker Compose host port |
 | `DB_URL` | `jdbc:postgresql://localhost:5432/chat` | Local Java runs; Compose sets the internal address |
 | `DB_USERNAME` | `chat` | Local Java runs; Compose uses `chat` |
@@ -169,7 +188,7 @@ This setup starts a PostgreSQL database; it does not migrate data from the earli
 - Browser behavior: `src/main/resources/static/js/chat.js`
 - Chat endpoints: `src/main/java/org/my/controllers/ChatController.java`
 - Chat logic: `src/main/java/org/my/services/ChatService.java`
-- Account registration: `src/main/java/org/my/services/ChatUserService.java`
+- Chat access and participants: `src/main/java/org/my/services/ChatUserService.java`
 - Access rules: `src/main/java/org/my/configurations/SecurityConfiguration.java`
 - Application configuration: `src/main/resources/application.yaml`
 

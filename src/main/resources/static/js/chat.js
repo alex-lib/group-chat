@@ -24,12 +24,11 @@ $(function() {
         signedIn = false;
         sessionVersion++;
         clearInterval(refreshInterval);
-        $('.messages-and-users, .controls, .account-controls').hide();
+        $('.messages-and-users, .controls, .session-controls').hide();
         $('.messages-list, .users-list').empty();
         $('.new-message, input[type="password"]').val('');
         $('#chatMessage').text('');
         $('.authentication').show();
-        $('#registerForm').prop('hidden', true);
         $('#loginForm').prop('hidden', false);
         $('#authMessage').text(message || '');
     };
@@ -94,7 +93,7 @@ $(function() {
         $('input[type="password"]').val('');
         $('.authentication').hide();
         $('.messages-and-users, .controls').css({display: 'flex'});
-        $('.account-controls').show();
+        $('.session-controls').show();
         $('#chatMessage').text('');
         let refresh = function() {
             updateUsers(version);
@@ -103,34 +102,6 @@ $(function() {
         refresh();
         refreshInterval = setInterval(refresh, 2000);
     };
-
-    $('#showRegister').on('click', function() {
-        $('#loginForm').prop('hidden', true);
-        $('#registerForm').prop('hidden', false);
-        $('#authMessage').text('');
-        $('input[type="password"]').val('');
-    });
-
-    $('#showLogin').on('click', function() {
-        showLogin();
-    });
-
-    $('#registerForm').on('submit', function(event) {
-        event.preventDefault();
-        let buttons = $('#registerForm button').prop('disabled', true);
-        let name = $('#registerName').val().trim();
-        $('#authMessage').text('');
-        post('/register', {name: name, password: $('#registerPassword').val()})
-            .done(function() {
-                $('#loginName').val(name);
-                showLogin('Account created. Sign in with your password.');
-                $('#loginPassword').trigger('focus');
-            }).fail(function(response) {
-                $('#authMessage').text(response.responseJSON?.message || 'Unable to create an account. Please try again.');
-            }).always(function() {
-                buttons.prop('disabled', false);
-            });
-    });
 
     $('#loginForm').on('submit', function(event) {
         event.preventDefault();
@@ -150,7 +121,7 @@ $(function() {
             .fail(function(response) {
                 $('#loginPassword').val('');
                 $('#authMessage').text(response.status === 401
-                    ? 'Invalid name or password.' : 'Unable to sign in. Please try again.');
+                    ? 'Enter a valid name and chat password.' : 'Unable to sign in. Please try again.');
             }).always(function() {
                 buttons.prop('disabled', false);
             });

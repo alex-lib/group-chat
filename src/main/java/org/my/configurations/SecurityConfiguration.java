@@ -1,4 +1,5 @@
 package org.my.configurations;
+import org.my.security.ChatAuthenticationSuccessHandler;
 import org.my.services.ChatUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +16,11 @@ import jakarta.servlet.DispatcherType;
 @EnableWebSecurity
 public class SecurityConfiguration {
     private final ChatUserService chatUserService;
+    private final ChatAuthenticationSuccessHandler authenticationSuccessHandler;
 
-    public SecurityConfiguration(ChatUserService chatUserService) {
+    public SecurityConfiguration(ChatUserService chatUserService, ChatAuthenticationSuccessHandler authenticationSuccessHandler) {
         this.chatUserService = chatUserService;
+        this.authenticationSuccessHandler = authenticationSuccessHandler;
     }
 
     @Bean
@@ -25,7 +28,6 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.GET, "/", "/index.html", "/css/**", "/js/**", "/favicon.ico", "/init").permitAll()
-                .requestMatchers(HttpMethod.POST, "/register").permitAll()
                 .anyRequest().authenticated()
         );
         http.exceptionHandling(exceptionHandling -> exceptionHandling
@@ -35,7 +37,7 @@ public class SecurityConfiguration {
                 .loginPage("/")
                 .loginProcessingUrl("/auth")
                 .usernameParameter("name")
-                .successHandler((request, response, authentication) -> response.setStatus(HttpStatus.OK.value()))
+                .successHandler(authenticationSuccessHandler)
                 .failureHandler((request, response, exception) -> response.setStatus(HttpStatus.UNAUTHORIZED.value()))
                 .permitAll()
         );
