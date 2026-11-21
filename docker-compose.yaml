@@ -7,6 +7,7 @@ services:
       DB_URL: jdbc:postgresql://db:5432/chat
       DB_USERNAME: chat
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      CHAT_PASSWORD: ${CHAT_PASSWORD:?Set CHAT_PASSWORD in .env}
     depends_on:
       db:
         condition: service_healthy

@@ -1,85 +1,177 @@
 $(function() {
+    let refreshInterval;
+    let sessionVersion = 0;
+    let signedIn = false;
+
+    let getCsrfToken = function() {
+        let cookie = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='));
+        return cookie ? decodeURIComponent(cookie.substring('XSRF-TOKEN='.length)) : '';
+    };
+
+    let post = function(url, data) {
+        let send = function() {
+            return $.ajax({
+                url: url,
+                method: 'POST',
+                data: data,
+                headers: {'X-XSRF-TOKEN': getCsrfToken()}
+            });
+        };
+        return getCsrfToken() ? send() : $.get('/init').then(send);
+    };
+
+    let showLogin = function(message) {
+        signedIn = false;
+        sessionVersion++;
+        clearInterval(refreshInterval);
+        $('.messages-and-users, .controls, .session-controls').hide();
+        $('.messages-list, .users-list').empty();
+        $('.new-message, input[type="password"]').val('');
+        $('#chatMessage').text('');
+        $('.authentication').show();
+        $('#loginForm').prop('hidden', false);
+        $('#authMessage').text(message || '');
+    };
+
+    let handleChatError = function(response, version) {
+        if (version !== sessionVersion || !signedIn) {
+            return;
+        }
+        if (response.status === 401 || response.status === 403) {
+            showLogin('Your session has expired. Please sign in again.');
+        } else {
+            $('#chatMessage').text('Unable to contact the chat. Please try again.');
+        }
+    };
+
     let getMessageElement = function(message) {
-        let item = ($('<div class="message-item"></div>'));
-        let header = ($('<div class="message-header"></div>'));
+        let item = $('<div class="message-item"></div>');
+        let header = $('<div class="message-header"></div>');
         header.append($('<div class="dateTime"></div>').text(message.dateTime));
         header.append($('<div class="userName"></div>').text(message.userName));
-        let textElement = ($('<div class="message-text"></div>'));
-        textElement.text(message.text);
-        item.append(header, textElement)
+        item.append(header, $('<div class="message-text"></div>').text(message.text));
         return item;
     };
 
-    let getUser = function(user) {
-        let item = ($('<div class="user-item"></div>'));
-        item.append($('<div class="name"></div>').text(user.name));
-        return item;
-    };
-
-    let updateUsers = function() {
-    $('.users-list').html('<i>There are no users yet</i>');
-        $.get('/user', {}, function(response) {
-        if(response.length == 0) {
+    let updateUsers = function(version) {
+        $.get('/user').done(function(users) {
+            if (version !== sessionVersion || !signedIn) {
                 return;
-        }
-        $('.users-list').html('<i>Users:</i>');
-        for(i in response) {
-            let element = getUser(response[i]);
-            $('.users-list').append(element);
             }
+            $('.users-list').empty();
+            for (let user of users) {
+                let item = $('<div class="user-item"></div>');
+                item.append($('<div class="name"></div>').text(user.name));
+                $('.users-list').append(item);
+            }
+        }).fail(function(response) {
+            handleChatError(response, version);
         });
     };
 
-    let updateMessages = function() {
-        $('.messages-list').html('<i>There are no messages yet</i>');
-        $.get('/message', {}, function(response) {
-            if(response.length == 0) {
+    let updateMessages = function(version) {
+        $.get('/message').done(function(messages) {
+            if (version !== sessionVersion || !signedIn) {
                 return;
             }
-            $('.messages-list').html('<i>Messages:</i>');
-            for(i in response) {
-                let element = getMessageElement(response[i]);
-                $('.messages-list').append(element);
+            $('.messages-list').empty();
+            if (messages.length === 0) {
+                $('.messages-list').text('There are no messages yet');
             }
+            for (let message of messages) {
+                $('.messages-list').append(getMessageElement(message));
+            }
+        }).fail(function(response) {
+            handleChatError(response, version);
         });
     };
 
     let initApplication = function() {
-        $('.messages-and-users').css({display: 'flex'});
-        $('.controls').css({display: 'flex'});
-        $('#messageForm').on('submit', function(event) {
-            event.preventDefault();
-            let message = $('.new-message').val();
-            if (!message) {
-                    alert('Please enter a message');
-                    return;
-                }
-            $.post('/message', {message: message}, function(response) {
-                if(response.result) {
-                    $('.new-message').val('');
+        clearInterval(refreshInterval);
+        let version = ++sessionVersion;
+        signedIn = true;
+        $('input[type="password"]').val('');
+        $('.authentication').hide();
+        $('.messages-and-users, .controls').css({display: 'flex'});
+        $('.session-controls').show();
+        $('#chatMessage').text('');
+        let refresh = function() {
+            updateUsers(version);
+            updateMessages(version);
+        };
+        refresh();
+        refreshInterval = setInterval(refresh, 2000);
+    };
+
+    $('#loginForm').on('submit', function(event) {
+        event.preventDefault();
+        let buttons = $('#loginForm button').prop('disabled', true);
+        $('#authMessage').text('');
+        post('/auth', {name: $('#loginName').val().trim(), password: $('#loginPassword').val()})
+            .then(function() {
+                return $.get('/init');
+            })
+            .done(function(response) {
+                if (response.result) {
+                    initApplication();
                 } else {
-                    alert('Error is: ' + response.message);
+                    showLogin('Unable to sign in. Please try again.');
                 }
+            })
+            .fail(function(response) {
+                $('#loginPassword').val('');
+                $('#authMessage').text(response.status === 401
+                    ? 'Enter a valid name and chat password.' : 'Unable to sign in. Please try again.');
+            }).always(function() {
+                buttons.prop('disabled', false);
             });
-        });
-        setInterval(updateUsers, 2000);
-        setInterval(updateMessages, 2000);
-    };
+    });
 
-    let registerUser = function(name) {
-        $.post('/auth', {name: name}, function(response) {
-            if(response.result) {
-                initApplication();
-            }
+    $('#logoutButton').on('click', function() {
+        let button = $(this).prop('disabled', true);
+        let version = sessionVersion;
+        post('/logout').done(function() {
+            showLogin('You have signed out.');
+        }).fail(function(response) {
+            handleChatError(response, version);
+        }).always(function() {
+            button.prop('disabled', false);
         });
-    };
+    });
 
-    $.get('/init', {}, function(response) {
-        if(!response.result) {
-            let name = prompt('Please, enter your name: ')
-            registerUser(name);
+    $('#messageForm').on('submit', function(event) {
+        event.preventDefault();
+        let message = $('.new-message').val();
+        if (!signedIn || !message) {
             return;
         }
-        initApplication();
+        let version = sessionVersion;
+        let button = $('.send-message').prop('disabled', true);
+        post('/message', {message: message}).done(function(response) {
+            if (version !== sessionVersion || !signedIn) {
+                return;
+            }
+            if (response.result) {
+                $('.new-message').val('');
+                $('#chatMessage').text('');
+                updateMessages(version);
+            } else {
+                $('#chatMessage').text('The message could not be sent.');
+            }
+        }).fail(function(response) {
+            handleChatError(response, version);
+        }).always(function() {
+            button.prop('disabled', false);
+        });
+    });
+
+    $.get('/init').done(function(response) {
+        if (response.result) {
+            initApplication();
+        } else {
+            showLogin();
+        }
+    }).fail(function() {
+        showLogin('Unable to connect. Please try signing in again.');
     });
 });

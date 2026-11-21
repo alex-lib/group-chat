@@ -1,8 +1,7 @@
 package org.my.dto;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 public class DtoMessage {

@@ -8,6 +8,24 @@
     <script src="/js/chat.js"></script>
 </head>
 <body>
+    <section class="authentication">
+        <h1>Group Chat</h1>
+        <form id="loginForm">
+            <h2>Join the chat</h2>
+            <label for="loginName">Name</label>
+            <input id="loginName" name="name" autocomplete="username" maxlength="32" required>
+            <p>Choose a display name of 1–32 characters.</p>
+            <label for="loginPassword">Chat password</label>
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            <p>Ask the chat owner for the shared password.</p>
+            <button type="submit">Join chat</button>
+        </form>
+        <p id="authMessage" role="alert"></p>
+    </section>
+    <section class="session-controls">
+        <button id="logoutButton" type="button">Sign out</button>
+    </section>
+    <p id="chatMessage" role="alert"></p>
     <section class="messages-and-users">
         <div class="messages-list">
         </div>
