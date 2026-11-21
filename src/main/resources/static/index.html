@@ -8,6 +8,34 @@
     <script src="/js/chat.js"></script>
 </head>
 <body>
+    <section class="authentication">
+        <h1>Group Chat</h1>
+        <form id="loginForm">
+            <h2>Sign in</h2>
+            <label for="loginName">Name</label>
+            <input id="loginName" name="name" autocomplete="username" maxlength="32" required>
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            <button type="submit">Sign in</button>
+            <button id="showRegister" type="button">Create an account</button>
+        </form>
+        <form id="registerForm" hidden>
+            <h2>Create an account</h2>
+            <label for="registerName">Name</label>
+            <input id="registerName" name="name" autocomplete="username" minlength="3" maxlength="32" required>
+            <p>Use 3–32 letters, numbers, underscores or hyphens.</p>
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+            <p>Use at least 12 characters.</p>
+            <button type="submit">Create account</button>
+            <button id="showLogin" type="button">Back to sign in</button>
+        </form>
+        <p id="authMessage" role="alert"></p>
+    </section>
+    <section class="account-controls">
+        <button id="logoutButton" type="button">Sign out</button>
+    </section>
+    <p id="chatMessage" role="alert"></p>
     <section class="messages-and-users">
         <div class="messages-list">
         </div>

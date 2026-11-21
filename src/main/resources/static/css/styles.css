@@ -81,3 +81,40 @@
 .send-message:hover {
     background-color: #45a049;
 }
+
+.authentication {
+    max-width: 360px;
+    margin: 40px auto;
+    padding: 24px;
+    border: 1px solid gray;
+    border-radius: 5px;
+    background-color: #d5ecd3;
+}
+
+.authentication label {
+    display: block;
+    margin-top: 12px;
+}
+
+.authentication input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px;
+    margin: 4px 0 12px;
+}
+
+.authentication button,
+.account-controls button {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.account-controls {
+    display: none;
+    margin-bottom: 20px;
+}
+
+#authMessage,
+#chatMessage {
+    color: #9c2525;
+}

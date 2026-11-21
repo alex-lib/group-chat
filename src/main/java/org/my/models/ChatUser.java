@@ -17,6 +17,9 @@ public class ChatUser {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "user_id")
     private int id;
-    private String sessionId;
     private String name;
+    @Column(name = "username", unique = true, length = 64)
+    private String username;
+    @Column(name = "password_hash")
+    private String passwordHash;
 }

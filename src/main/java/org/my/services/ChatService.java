@@ -24,24 +24,12 @@ public class ChatService {
         this.messageRepository = messageRepository;
     }
 
-    public boolean isRegistered(String sessionId) {
-        return chatUserRepository.existsBySessionId(sessionId);
-    }
-
     @Transactional
-    public void registerUser(String sessionId, String name) {
-        ChatUser user = new ChatUser();
-        user.setSessionId(sessionId);
-        user.setName(name);
-        chatUserRepository.save(user);
-    }
-
-    @Transactional
-    public boolean sendMessage(String sessionId, String message) {
+    public boolean sendMessage(String username, String message) {
         if(message == null || message.isEmpty()) {
             return false;
         }
-        ChatUser user = chatUserRepository.findBySessionId(sessionId).orElseThrow();
+        ChatUser user = chatUserRepository.findByUsername(username).orElseThrow();
         Message newMessage = new Message();
         newMessage.setMessage(message);
         newMessage.setUser(user);
