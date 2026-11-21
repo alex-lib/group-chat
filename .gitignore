@@ -1,6 +1,11 @@
 ### Gradle ###
 .gradle/
 
+### Local configuration ###
+.env
+.env.*
+!.env.example
+
 ### IntelliJ IDEA ###
 .idea/amplicode-jpa.xml
 .idea/modules.xml
