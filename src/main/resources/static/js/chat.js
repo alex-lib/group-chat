@@ -2,8 +2,8 @@ $(function() {
     let getMessageElement = function(message) {
         let item = ($('<div class="message-item"></div>'));
         let header = ($('<div class="message-header"></div>'));
-        header.append($('<div class="dateTime">' + message.dateTime + '</div>'));
-        header.append($('<div class="userName">' + message.userName + '</div>'));
+        header.append($('<div class="dateTime"></div>').text(message.dateTime));
+        header.append($('<div class="userName"></div>').text(message.userName));
         let textElement = ($('<div class="message-text"></div>'));
         textElement.text(message.text);
         item.append(header, textElement)
@@ -12,7 +12,7 @@ $(function() {
 
     let getUser = function(user) {
         let item = ($('<div class="user-item"></div>'));
-        item.append($('<div class="name">' + user.name + '</div>'));
+        item.append($('<div class="name"></div>').text(user.name));
         return item;
     };
 
@@ -47,7 +47,8 @@ $(function() {
     let initApplication = function() {
         $('.messages-and-users').css({display: 'flex'});
         $('.controls').css({display: 'flex'});
-        $('.send-message').on('click', function() {
+        $('#messageForm').on('submit', function(event) {
+            event.preventDefault();
             let message = $('.new-message').val();
             if (!message) {
                     alert('Please enter a message');
