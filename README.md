@@ -140,6 +140,7 @@ This setup starts a PostgreSQL database; it does not migrate data from the earli
 - Appearance: `src/main/resources/static/css/styles.css`
 - Browser behavior: `src/main/resources/static/js/chat.js`
 - Chat endpoints: `src/main/java/org/my/controllers/ChatController.java`
-- Application configuration: `src/main/resources/application.properties`
+- Chat logic: `src/main/java/org/my/services/ChatService.java`
+- Application configuration: `src/main/resources/application.yaml`
 
 For feature requests or questions: docode@inbox.ru / tg: @exceedspace.

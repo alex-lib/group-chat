@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/chat}"
+    username: "${DB_USERNAME:chat}"
+    password: "${DB_PASSWORD:}"
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: true
