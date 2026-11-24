@@ -2,47 +2,94 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OnlineGroupChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#090d0b">
+    <meta name="description" content="Your people. Your space. Join the conversation in Group Chat.">
+    <title>Group Chat</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23121716'/%3E%3Cpath d='M11 11h18v13H18l-7 6z' fill='none' stroke='%238ceeaa' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/styles.css">
-    <script src="https://code.jquery.com/jquery-4.1.0.min.js"></script>
-    <script src="/js/chat.js"></script>
+    <script src="/js/background.js" defer></script>
+    <script src="https://code.jquery.com/jquery-4.1.0.min.js" defer></script>
+    <script src="/js/chat.js" defer></script>
 </head>
 <body>
-    <section class="authentication">
-        <h1>Group Chat</h1>
-        <form id="loginForm">
-            <h2>Join the chat</h2>
-            <label for="loginName">Name</label>
-            <input id="loginName" name="name" autocomplete="username" maxlength="32" required>
-            <p>Choose a display name of 1–32 characters.</p>
-            <label for="loginPassword">Chat password</label>
-            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
-            <p>Ask the chat owner for the shared password.</p>
-            <button type="submit">Join chat</button>
-        </form>
-        <p id="authMessage" role="alert"></p>
-    </section>
-    <section class="session-controls">
-        <button id="logoutButton" type="button">Sign out</button>
-    </section>
-    <p id="chatMessage" role="alert"></p>
-    <section class="messages-and-users">
-        <div class="messages-list">
+    <canvas id="backgroundCanvas" aria-hidden="true"></canvas>
+    <header class="app-header">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>group<span>chat</span></div>
+        <div class="appearance-controls">
+            <div class="theme-picker" role="group" aria-label="Background theme">
+                <button class="theme-button" type="button" data-theme="rain" aria-pressed="false"><span class="theme-icon" aria-hidden="true">▥</span>ASCII Rain</button>
+                <button class="theme-button" type="button" data-theme="ring" aria-pressed="true"><span class="theme-icon" aria-hidden="true">◉</span>Energy Ring</button>
+            </div>
+            <button id="motionToggle" class="motion-toggle" type="button" aria-pressed="false" aria-label="Pause background animation" hidden>Pause motion</button>
         </div>
-        <div class="users-list"></div>
-    </section>
-    <section class="controls">
-        <form id="messageForm" role="form">
-            <label for="messageInput" class="sr-only"></label>
-            <textarea
-                id="messageInput"
-                name="message"
-                class="new-message"
-                placeholder="Type your message here..."
-                rows="3"
-                required></textarea>
-            <button type="submit" class="send-message">Send</button>
-        </form>
-    </section>
+    </header>
+    <div class="app-loading" role="status">Opening your space…</div>
+    <noscript><p class="noscript-message">Please enable JavaScript to use Group Chat.</p></noscript>
+    <main class="authentication" hidden>
+        <section class="welcome-panel" aria-labelledby="welcomeTitle">
+            <p class="eyebrow"><span aria-hidden="true">✳</span> YOUR PEOPLE. YOUR SPACE.</p>
+            <h1 id="welcomeTitle">A little space.<br>A lot to <em>say.</em></h1>
+            <p class="welcome-description">For the ideas, the everyday updates,<br>and the conversations that bring us closer.</p>
+            <div class="welcome-footer"><span class="footer-line" aria-hidden="true"></span>Less noise. More connection.</div>
+        </section>
+        <section class="login-panel" aria-labelledby="loginTitle">
+            <div class="panel-heading"><span class="panel-symbol" aria-hidden="true">#</span><span class="eyebrow">COME ON IN</span></div>
+            <h2 id="loginTitle">Make yourself at home.</h2>
+            <p class="login-description">Your people are just a conversation away.</p>
+            <form id="loginForm">
+                <div class="field">
+                    <label for="loginName">Your name</label>
+                    <input id="loginName" name="name" autocomplete="username" placeholder="What should we call you?" maxlength="32" aria-describedby="nameHint" required>
+                    <p id="nameHint" class="field-hint">Your display name. Up to 32 characters.</p>
+                </div>
+                <div class="field">
+                    <label for="loginPassword">Chat password</label>
+                    <div class="password-field">
+                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter the shared password" aria-describedby="passwordHint" required>
+                        <button id="passwordToggle" class="password-toggle" type="button" aria-controls="loginPassword" aria-pressed="false" aria-label="Show password">Show</button>
+                    </div>
+                    <p id="passwordHint" class="field-hint">Ask the chat owner for the shared password.</p>
+                </div>
+                <p id="authMessage" class="feedback" role="alert"></p>
+                <button class="keycap join-button" type="submit"><span>Join the conversation</span><kbd aria-hidden="true">↵</kbd></button>
+            </form>
+            <p class="login-note"><span class="lock-icon" aria-hidden="true"></span>One shared password. No account to create.</p>
+        </section>
+        <p class="page-note">A shared space for real conversations.</p>
+    </main>
+    <main class="chat-shell" hidden>
+        <aside class="sidebar" aria-label="Chat space">
+            <div class="space-heading"><span class="space-icon" aria-hidden="true">g.</span><div><strong>Your space</strong><p>Good company, always.</p></div></div>
+            <div class="space-navigation"><p class="eyebrow">CONVERSATIONS</p><div class="current-room"><span aria-hidden="true">#</span>General chat</div></div>
+            <div class="sidebar-note"><span aria-hidden="true">✳</span><h2>Better, together.</h2><p>A thought, a question, a little update. There’s room for all of it here.</p></div>
+            <div class="session-controls"><span class="session-label">Make yourself at home.</span><button id="logoutButton" class="keycap secondary-button" type="button">Sign out</button></div>
+        </aside>
+        <section class="conversation" aria-labelledby="chatTitle">
+            <header class="chat-header">
+                <div class="chat-heading"><span class="header-symbol" aria-hidden="true">#</span><div><h1 id="chatTitle" tabindex="-1">General chat</h1><p>A space to stay in the loop.</p></div></div>
+                <button id="participantsToggle" class="keycap secondary-button participants-toggle" type="button" aria-label="Show participants" aria-expanded="false" aria-controls="participantsPanel">People <span class="participant-count">0</span></button>
+            </header>
+            <p id="chatMessage" class="feedback chat-feedback" role="alert"></p>
+            <div class="message-area">
+                <div class="messages-list" role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions" aria-busy="true"></div>
+                <button id="latestButton" class="keycap latest-button" type="button" hidden>New messages</button>
+            </div>
+            <div class="controls">
+                <form id="messageForm">
+                    <label for="messageInput" class="sr-only">Your message</label>
+                    <textarea id="messageInput" name="message" class="new-message" placeholder="Add to the conversation…" rows="2" required></textarea>
+                    <div class="composer-toolbar"><span>Keep it kind. Keep it you.</span><button type="submit" class="keycap send-message" disabled>Send message <kbd aria-hidden="true">↵</kbd></button></div>
+                </form>
+                <p class="composer-hint"><span id="sendShortcut">Ctrl + Enter</span> to send<span aria-hidden="true"> · </span>Enter for a new line</p>
+            </div>
+        </section>
+        <aside id="participantsPanel" class="participants-panel" aria-labelledby="participantsTitle">
+            <header class="participants-header"><h2 id="participantsTitle">In this space <span class="participant-count">0</span></h2><button id="participantsClose" class="keycap secondary-button participants-close" type="button" aria-label="Close participants">×</button></header>
+            <p class="participants-description">People who have joined the chat.</p>
+            <div class="users-list" role="list" aria-label="Participants"></div>
+            <div class="space-info"><span class="lock-icon" aria-hidden="true"></span><div><h3>Bring your people.</h3><p>Share the chat link and password to invite someone in.</p></div></div>
+        </aside>
+    </main>
 </body>
 </html>
