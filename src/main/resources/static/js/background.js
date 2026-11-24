@@ -4,9 +4,8 @@
     const canvas = document.getElementById('backgroundCanvas');
     const context = canvas.getContext('2d');
     const themeButtons = document.querySelectorAll('[data-theme]');
-    const motionButton = document.getElementById('motionToggle');
-    const mobile = window.matchMedia('(max-width: 760px), (pointer: coarse)');
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const welcomePanel = document.querySelector('.welcome-panel');
+    const mobile = window.matchMedia('(max-width: 760px)');
     const tau = Math.PI * 2;
     const glyphSize = 10;
     const trailLength = 18;
@@ -14,7 +13,6 @@
     const rimVertices = 420;
     const glowSegments = 28;
     let theme = 'ring';
-    let paused = false;
     let width = 0;
     let height = 0;
     let span = 0;
@@ -27,7 +25,6 @@
 
     try {
         theme = localStorage.getItem('group-chat-theme') === 'rain' ? 'rain' : 'ring';
-        paused = localStorage.getItem('group-chat-motion-paused') === 'true';
     } catch (error) {
         // The chosen appearance still works when browser storage is unavailable.
     }
@@ -183,8 +180,10 @@
     let drawRing = function() {
         let chatOpen = document.body.classList.contains('is-chat');
         let small = mobile.matches;
-        let centerX = width * (small || chatOpen ? .5 : .29);
-        let centerY = height * (small ? .29 : .5);
+        let welcomeBounds = welcomePanel.getBoundingClientRect();
+        let showWelcome = !chatOpen && welcomeBounds.width > 0 && welcomeBounds.height > 0;
+        let centerX = showWelcome ? welcomeBounds.left + welcomeBounds.width / 2 : width / 2;
+        let centerY = showWelcome ? welcomeBounds.top + welcomeBounds.height / 2 : height / 2;
         let size = Math.min(width, height) * (small ? .95 : .8);
         let radius = size * .47;
         let scale = size / 1150;
@@ -306,13 +305,8 @@
         cancelAnimationFrame(frame);
         frame = 0;
         lastFrame = 0;
-        let still = mobile.matches || reducedMotion.matches;
-        motionButton.hidden = still || !context;
-        motionButton.textContent = paused ? 'Resume motion' : 'Pause motion';
-        motionButton.setAttribute('aria-label', paused ? 'Resume background animation' : 'Pause background animation');
-        motionButton.setAttribute('aria-pressed', String(paused));
         draw(0);
-        if (context && !still && !paused && !document.hidden) {
+        if (context && !mobile.matches && !document.hidden) {
             frame = requestAnimationFrame(tick);
         }
     };
@@ -342,18 +336,13 @@
     };
 
     themeButtons.forEach(button => button.addEventListener('click', () => selectTheme(button.dataset.theme)));
-    motionButton.addEventListener('click', function() {
-        paused = !paused;
-        savePreference('group-chat-motion-paused', String(paused));
-        updateMotion();
-    });
     mobile.addEventListener('change', updateMotion);
-    reducedMotion.addEventListener('change', updateMotion);
     document.addEventListener('visibilitychange', updateMotion);
     window.addEventListener('resize', layout);
     window.addEventListener('pagehide', () => cancelAnimationFrame(frame));
     window.addEventListener('pageshow', updateMotion);
     new MutationObserver(() => draw(0)).observe(document.body, {attributes: true, attributeFilter: ['class']});
+    new ResizeObserver(() => draw(0)).observe(welcomePanel);
     selectTheme(theme);
     layout();
 })();

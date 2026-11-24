@@ -21,14 +21,13 @@
                 <button class="theme-button" type="button" data-theme="rain" aria-pressed="false"><span class="theme-icon" aria-hidden="true">▥</span>ASCII Rain</button>
                 <button class="theme-button" type="button" data-theme="ring" aria-pressed="true"><span class="theme-icon" aria-hidden="true">◉</span>Energy Ring</button>
             </div>
-            <button id="motionToggle" class="motion-toggle" type="button" aria-pressed="false" aria-label="Pause background animation" hidden>Pause motion</button>
         </div>
     </header>
     <div class="app-loading" role="status">Opening your space…</div>
     <noscript><p class="noscript-message">Please enable JavaScript to use Group Chat.</p></noscript>
     <main class="authentication" hidden>
         <section class="welcome-panel" aria-labelledby="welcomeTitle">
-            <h1 id="welcomeTitle">ONLY YOU AND YOURS.</h1>
+            <h1 id="welcomeTitle">ONLY YOU<br>AND YOURS.</h1>
         </section>
         <section class="login-panel" aria-labelledby="loginTitle">
             <div class="panel-heading"><span class="panel-symbol" aria-hidden="true">#</span><span class="eyebrow">COME ON IN</span></div>
@@ -56,16 +55,13 @@
         <p class="page-note">A shared space for real conversations.</p>
     </main>
     <main class="chat-shell" hidden>
-        <aside class="sidebar" aria-label="Chat space">
-            <div class="space-heading"><span class="space-icon" aria-hidden="true">g.</span><div><strong>Your space</strong><p>Good company, always.</p></div></div>
-            <div class="space-navigation"><p class="eyebrow">CONVERSATIONS</p><div class="current-room"><span aria-hidden="true">#</span>General chat</div></div>
-            <div class="sidebar-note"><span aria-hidden="true">✳</span><h2>Better, together.</h2><p>A thought, a question, a little update. There’s room for all of it here.</p></div>
-            <div class="session-controls"><span class="session-label">Make yourself at home.</span><button id="logoutButton" class="keycap secondary-button" type="button">Sign out</button></div>
-        </aside>
         <section class="conversation" aria-labelledby="chatTitle">
             <header class="chat-header">
                 <div class="chat-heading"><span class="header-symbol" aria-hidden="true">#</span><div><h1 id="chatTitle" tabindex="-1">General chat</h1><p>A space to stay in the loop.</p></div></div>
-                <button id="participantsToggle" class="keycap secondary-button participants-toggle" type="button" aria-label="Show participants" aria-expanded="false" aria-controls="participantsPanel">People <span class="participant-count">0</span></button>
+                <div class="chat-actions">
+                    <button id="participantsToggle" class="keycap secondary-button participants-toggle" type="button" aria-label="Show participants" aria-expanded="false" aria-controls="participantsPanel">People <span class="participant-count">0</span></button>
+                    <button id="logoutButton" class="keycap secondary-button" type="button">Sign out</button>
+                </div>
             </header>
             <p id="chatMessage" class="feedback chat-feedback" role="alert"></p>
             <div class="message-area">
