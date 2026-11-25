@@ -71,8 +71,8 @@
             <div class="controls">
                 <form id="messageForm">
                     <label for="messageInput" class="sr-only">Your message</label>
-                    <textarea id="messageInput" name="message" class="new-message" placeholder="Add to the conversation…" rows="2" required></textarea>
-                    <div class="composer-toolbar"><span>Keep it kind. Keep it you.</span><button type="submit" class="keycap send-message" disabled>Send message <kbd aria-hidden="true">↵</kbd></button></div>
+                    <textarea id="messageInput" name="message" class="new-message" placeholder="Add to the conversation…" rows="2" aria-describedby="messageLength" required></textarea>
+                    <div class="composer-toolbar"><span id="messageLength">0 / 255 characters</span><button type="submit" class="keycap send-message" disabled>Send message <kbd aria-hidden="true">↵</kbd></button></div>
                 </form>
                 <p class="composer-hint"><span id="sendShortcut">Ctrl + Enter</span> to send<span aria-hidden="true"> · </span>Enter for a new line</p>
             </div>
@@ -83,6 +83,10 @@
             <div class="users-list" role="list" aria-label="Participants"></div>
             <div class="space-info"><span class="lock-icon" aria-hidden="true"></span><div><h3>Bring your people.</h3><p>Share the chat link and password to invite someone in.</p></div></div>
         </aside>
+        <div id="messageToast" class="message-toast" hidden>
+            <div role="alert" aria-atomic="true"><strong>Message is too long</strong><p id="messageToastText"></p></div>
+            <button id="closeMessageToast" type="button" aria-label="Dismiss message length error">×</button>
+        </div>
     </main>
 </body>
 </html>

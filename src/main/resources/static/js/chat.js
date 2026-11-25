@@ -1,4 +1,5 @@
 $(function() {
+    const maxMessageLength = 255;
     let refreshInterval;
     let sessionVersion = 0;
     let signedIn = false;
@@ -39,6 +40,13 @@ $(function() {
     let resizeComposer = function() {
         messageInput.style.height = 'auto';
         messageInput.style.height = messageInput.scrollHeight + 'px';
+        let length = Array.from(messageInput.value).length;
+        let tooLong = length > maxMessageLength;
+        $('#messageLength').text(length + ' / ' + maxMessageLength + ' characters').toggleClass('is-invalid', tooLong);
+        $('#messageInput').attr('aria-invalid', String(tooLong));
+        if (!tooLong) {
+            $('#messageToast').prop('hidden', true);
+        }
         $('.send-message').prop('disabled', sending || !messageInput.value.trim());
     };
 
@@ -66,6 +74,7 @@ $(function() {
         $('.authentication').prop('hidden', false);
         $('body').removeClass('is-chat');
         $('.messages-list, .users-list').empty();
+        $('#messageToast').prop('hidden', true);
         messageInput.value = '';
         resetPassword();
         chatErrors = {};
@@ -295,6 +304,13 @@ $(function() {
         if (!signedIn || sending || !message.trim()) {
             return;
         }
+        let length = Array.from(message).length;
+        if (length > maxMessageLength) {
+            $('#messageToast').prop('hidden', false);
+            $('#messageToastText').text('Use up to ' + maxMessageLength + ' characters. Your message has ' + length + '. Shorten it and try again.');
+            messageInput.focus({preventScroll: true});
+            return;
+        }
         let version = sessionVersion;
         sending = true;
         $('.send-message').prop('disabled', true).text('Sending…');
@@ -330,6 +346,10 @@ $(function() {
         }
     });
     $('#latestButton').on('click', scrollToLatest);
+    $('#closeMessageToast').on('click', function() {
+        $('#messageToast').prop('hidden', true);
+        messageInput.focus({preventScroll: true});
+    });
     $('.messages-list').on('scroll', function() {
         if (messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80) {
             $('#latestButton').prop('hidden', true);

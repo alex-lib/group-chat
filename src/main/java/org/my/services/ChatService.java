@@ -39,7 +39,7 @@ public class ChatService {
     }
 
     public List<DtoMessage> getMessages() {
-        return messageRepository.findAll(Sort.by(Sort.Direction.ASC, "dateTime")).stream()
+        return messageRepository.findAllWithUsers(Sort.by(Sort.Direction.ASC, "dateTime")).stream()
                 .map(MessageMapper::mapMessageToDto)
                 .toList();
     }
