@@ -4,7 +4,13 @@ $(function() {
     let sessionVersion = 0;
     let signedIn = false;
     let sending = false;
-    let previousMessages = null;
+    let changingPassword = false;
+    const messagePageSize = 50;
+    const maxVisibleMessages = 300;
+    let messages = [];
+    let historyLoaded = false;
+    let hasOlderMessages = false;
+    let hasNewerMessages = false;
     let previousUsers = '';
     let messageRequest;
     let userRequest;
@@ -14,6 +20,7 @@ $(function() {
     let dateFormat = new Intl.DateTimeFormat(undefined, {month: 'long', day: 'numeric', year: 'numeric'});
     let messageList = $('.messages-list')[0];
     let messageInput = $('#messageInput')[0];
+    let passwordDialog = $('#passwordDialog')[0];
 
     let getCsrfToken = function() {
         let cookie = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='));
@@ -65,6 +72,7 @@ $(function() {
 
     let showLogin = function(message) {
         signedIn = false;
+        passwordDialog.close();
         sessionVersion++;
         clearInterval(refreshInterval);
         messageRequest?.abort();
@@ -124,7 +132,7 @@ $(function() {
     };
 
     let getMessageElement = function(message) {
-        let item = $('<div class="message-item"></div>');
+        let item = $('<div class="message-item"></div>').attr('data-message-id', message.id);
         let content = $('<div class="message-content"></div>');
         let header = $('<div class="message-header"></div>');
         let date = new Date(message.dateTime);
@@ -169,59 +177,122 @@ $(function() {
         });
     };
 
-    let updateMessages = function(version) {
-        if (messageRequest?.state() === 'pending') {
+    let renderMessages = function() {
+        $('.messages-list').empty();
+        if (hasOlderMessages) {
+            $('.messages-list').append($('<button class="keycap secondary-button history-button" type="button">Load older messages</button>'));
+        }
+        if (messages.length === 0) {
+            $('.messages-list').append($('<div class="empty-state"></div>').append(
+                $('<span class="empty-symbol" aria-hidden="true">✳</span>'),
+                $('<h2>Every conversation starts somewhere.</h2>'),
+                $('<p>Say hello, share a thought, or simply break the ice.</p>')
+            ));
+        }
+        let lastDay = '';
+        for (let message of messages) {
+            let day = getDateLabel(message.dateTime);
+            if (day !== lastDay) {
+                $('.messages-list').append($('<div class="date-divider"></div>').text(day));
+                lastDay = day;
+            }
+            $('.messages-list').append(getMessageElement(message));
+        }
+    };
+
+    let loadMessages = function(version, direction) {
+        if (!signedIn || messageRequest?.state() === 'pending') {
             return;
         }
-        messageRequest = $.get('/message').done(function(messages) {
+        if (direction === 'older' && (!historyLoaded || !hasOlderMessages)) {
+            return;
+        }
+        let initial = !historyLoaded || direction === 'latest';
+        let parameters = initial ? {} : direction === 'older'
+            ? {before: messages[0].id} : {after: messages.at(-1)?.id || 0};
+        $('.messages-list').attr('aria-busy', 'true');
+        $('.history-button').prop('disabled', true).text('Loading…');
+        let followLatest = false;
+        messageRequest = $.get('/message', parameters).done(function(page) {
             if (version !== sessionVersion || !signedIn) {
                 return;
             }
             showChatError('messages', '');
-            let initial = previousMessages === null;
-            if (!initial && messages.length === 0 && previousMessages.length === 0) {
-                return;
-            }
             let atBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
-            let shouldScroll = initial || atBottom || scrollAfterSend;
-            let previousHeight = messageList.scrollTop;
-            let prefixUnchanged = !initial && previousMessages.length <= messages.length
-                && previousMessages.every((message, index) => JSON.stringify(message) === JSON.stringify(messages[index]));
-            let start = prefixUnchanged ? previousMessages.length : 0;
-            if (!prefixUnchanged || previousMessages.length === 0) {
-                $('.messages-list').empty();
-            }
-            if (messages.length === 0) {
-                $('.messages-list').append($('<div class="empty-state"></div>').append(
-                    $('<span class="empty-symbol" aria-hidden="true">✳</span>'),
-                    $('<h2>Every conversation starts somewhere.</h2>'),
-                    $('<p>Say hello, share a thought, or simply break the ice.</p>')
-                ));
-            }
-            let lastDay = start > 0 ? getDateLabel(messages[start - 1].dateTime) : '';
-            for (let index = start; index < messages.length; index++) {
-                let message = messages[index];
-                let day = getDateLabel(message.dateTime);
-                if (day !== lastDay) {
-                    $('.messages-list').append($('<div class="date-divider"></div>').text(day));
-                    lastDay = day;
+            let shouldScroll = initial || (direction !== 'older' && (atBottom || scrollAfterSend));
+            let bounds = messageList.getBoundingClientRect();
+            let anchor = Array.from(messageList.querySelectorAll('.message-item'))
+                .find(item => item.getBoundingClientRect().bottom > bounds.top);
+            let anchorId = anchor?.dataset.messageId;
+            let anchorTop = anchor?.getBoundingClientRect().top;
+            let previousTop = messageList.scrollTop;
+            let knownIds = new Set(messages.map(message => message.id));
+            let additions = page.filter(message => !knownIds.has(message.id));
+            if (initial) {
+                messages = page;
+                hasOlderMessages = page.length === messagePageSize;
+                hasNewerMessages = false;
+            } else if (direction === 'older') {
+                messages = additions.concat(messages);
+                hasOlderMessages = page.length === messagePageSize;
+                if (messages.length > maxVisibleMessages) {
+                    messages = messages.slice(0, maxVisibleMessages);
+                    hasNewerMessages = true;
                 }
-                $('.messages-list').append(getMessageElement(message));
+            } else {
+                messages = messages.concat(additions);
+                hasNewerMessages = page.length === messagePageSize;
+                if (messages.length > maxVisibleMessages) {
+                    messages = messages.slice(-maxVisibleMessages);
+                    hasOlderMessages = true;
+                }
             }
-            $('.messages-list').attr('aria-busy', 'false');
+            historyLoaded = true;
+            if (initial || direction === 'older' || additions.length > 0) {
+                renderMessages();
+            }
             if (shouldScroll) {
                 scrollToLatest();
-            } else {
-                messageList.scrollTop = previousHeight;
-                if (messages.length > start) {
-                    $('#latestButton').prop('hidden', false);
-                }
+            } else if (anchorId) {
+                let restored = messageList.querySelector('[data-message-id="' + anchorId + '"]');
+                messageList.scrollTop = restored
+                    ? messageList.scrollTop + restored.getBoundingClientRect().top - anchorTop : previousTop;
             }
-            previousMessages = messages;
+            if (hasNewerMessages || (!shouldScroll && direction !== 'older' && additions.length > 0)) {
+                $('#latestButton').text(hasNewerMessages ? 'Back to latest' : 'New messages').prop('hidden', false);
+            }
             scrollAfterSend = false;
+            followLatest = hasNewerMessages && shouldScroll;
         }).fail(function(response) {
             handleChatError(response, version, 'messages');
+        }).always(function() {
+            if (version !== sessionVersion || !signedIn) {
+                return;
+            }
+            $('.messages-list').attr('aria-busy', 'false');
+            $('.history-button').prop('disabled', false).text('Load older messages');
+            if (followLatest) {
+                setTimeout(function() {
+                    if (version === sessionVersion && signedIn) {
+                        loadMessages(version, 'newer');
+                    }
+                }, 0);
+            }
         });
+    };
+
+    let updateMessages = function(version) {
+        let readingHistory = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight >= 80;
+        if (!scrollAfterSend && messages.length > maxVisibleMessages - messagePageSize && readingHistory) {
+            hasNewerMessages = true;
+            $('#latestButton').text('Back to latest').prop('hidden', false);
+            return;
+        }
+        if (scrollAfterSend && hasNewerMessages) {
+            loadMessages(version, 'latest');
+        } else if (!hasNewerMessages) {
+            loadMessages(version, 'newer');
+        }
     };
 
     let initApplication = function() {
@@ -230,7 +301,10 @@ $(function() {
         signedIn = true;
         sending = false;
         $('.send-message').text('Send message').append($('<kbd aria-hidden="true">↵</kbd>'));
-        previousMessages = null;
+        messages = [];
+        historyLoaded = false;
+        hasOlderMessages = false;
+        hasNewerMessages = false;
         previousUsers = '';
         scrollAfterSend = false;
         resetPassword();
@@ -278,11 +352,80 @@ $(function() {
             .fail(function(response) {
                 resetPassword();
                 $('#authMessage').text(response.status === 401
-                    ? 'Enter a valid name and chat password.' : 'Unable to sign in. Please try again.');
+                    ? 'Check your name and password. Use your personal password if you changed it.' : response.status === 503
+                        ? 'The chat database is unavailable. Please try signing in again shortly.'
+                        : 'Unable to sign in. Please try again.');
                 $('#loginPassword').trigger('focus');
             }).always(function() {
                 buttons.prop('disabled', false);
                 $('.join-button > span').text('Join the conversation');
+            });
+    });
+
+    $('#changePasswordButton').on('click', function() {
+        $('#changePasswordForm')[0].reset();
+        $('#passwordMessage').text('');
+        passwordDialog.showModal();
+        $('#currentPassword').trigger('focus');
+    });
+    $('#cancelPasswordChange').on('click', function() {
+        passwordDialog.close();
+    });
+    $(passwordDialog).on('cancel', function(event) {
+        if (changingPassword) {
+            event.preventDefault();
+        }
+    }).on('close', function() {
+        $('#changePasswordForm')[0].reset();
+        $('#passwordMessage').text('');
+    });
+    $('#changePasswordForm').on('submit', function(event) {
+        event.preventDefault();
+        if (changingPassword || !signedIn) {
+            return;
+        }
+        let newPassword = $('#newPassword').val();
+        if (!newPassword.trim() || newPassword.length < 12 || new TextEncoder().encode(newPassword).length > 72) {
+            $('#passwordMessage').text('Use at least 12 characters and no more than 72 UTF-8 bytes.');
+            return;
+        }
+        if (newPassword !== $('#confirmPassword').val()) {
+            $('#passwordMessage').text('The new passwords do not match.');
+            return;
+        }
+        let version = sessionVersion;
+        changingPassword = true;
+        clearInterval(refreshInterval);
+        messageRequest?.abort();
+        userRequest?.abort();
+        $('#passwordMessage').text('');
+        $('#changePasswordForm button').prop('disabled', true);
+        post('/password', {currentPassword: $('#currentPassword').val(), newPassword: newPassword})
+            .done(function() {
+                post('/logout').always(function() {
+                    if (version === sessionVersion) {
+                        showLogin('Password changed. Sign in with your name and new password.');
+                    }
+                });
+            }).fail(function(response) {
+                if (version !== sessionVersion || !signedIn) {
+                    return;
+                }
+                if (response.status === 401 || response.status === 403) {
+                    showLogin('Your session has expired. Please sign in again.');
+                    return;
+                }
+                $('#passwordMessage').text(response.status === 400 ? 'The current password is incorrect.'
+                    : response.status === 422 ? 'Use at least 12 characters and no more than 72 UTF-8 bytes.'
+                    : response.status === 409 ? 'Your password was changed in another session. Please sign in again.'
+                    : 'Unable to change your password. Please try again.');
+                refreshInterval = setInterval(function() {
+                    updateUsers(version);
+                    updateMessages(version);
+                }, 2000);
+            }).always(function() {
+                changingPassword = false;
+                $('#changePasswordForm button').prop('disabled', false);
             });
     });
 
@@ -345,14 +488,29 @@ $(function() {
             $('#messageForm').trigger('submit');
         }
     });
-    $('#latestButton').on('click', scrollToLatest);
+    $('#latestButton').on('click', function() {
+        if (hasNewerMessages) {
+            loadMessages(sessionVersion, 'latest');
+        } else {
+            scrollToLatest();
+        }
+    });
+    $('.messages-list').on('click', '.history-button', function() {
+        loadMessages(sessionVersion, 'older');
+    });
     $('#closeMessageToast').on('click', function() {
         $('#messageToast').prop('hidden', true);
         messageInput.focus({preventScroll: true});
     });
     $('.messages-list').on('scroll', function() {
-        if (messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80) {
-            $('#latestButton').prop('hidden', true);
+        if (messageList.scrollTop < 80 && historyLoaded && hasOlderMessages) {
+            loadMessages(sessionVersion, 'older');
+        } else if (messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80) {
+            if (hasNewerMessages) {
+                loadMessages(sessionVersion, 'newer');
+            } else {
+                $('#latestButton').prop('hidden', true);
+            }
         }
     });
     $('#participantsToggle').on('click', function() {

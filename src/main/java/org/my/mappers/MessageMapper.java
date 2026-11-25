@@ -5,6 +5,7 @@ import org.my.models.Message;
 public class MessageMapper {
     public static DtoMessage mapMessageToDto(Message message) {
         DtoMessage dtoMessage = new DtoMessage();
+        dtoMessage.setId(message.getId());
         dtoMessage.setText(message.getMessage());
         dtoMessage.setDateTime(message.getDateTime().toString());
         dtoMessage.setUserName(message.getUser().getName());
