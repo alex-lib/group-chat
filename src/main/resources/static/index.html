@@ -40,17 +40,17 @@
                     <p id="nameHint" class="field-hint">Your display name. Up to 32 characters.</p>
                 </div>
                 <div class="field">
-                    <label for="loginPassword">Chat password</label>
+                    <label for="loginPassword">Password</label>
                     <div class="password-field">
-                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter the shared password" aria-describedby="passwordHint" required>
+                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" aria-describedby="passwordHint" required>
                         <button id="passwordToggle" class="password-toggle" type="button" aria-controls="loginPassword" aria-pressed="false" aria-label="Show password">Show</button>
                     </div>
-                    <p id="passwordHint" class="field-hint">Ask the chat owner for the shared password.</p>
+                    <p id="passwordHint" class="field-hint">First time? Use the shared chat password. Returning? Use your own password if you changed it.</p>
                 </div>
                 <p id="authMessage" class="feedback" role="alert"></p>
                 <button class="keycap join-button" type="submit"><span>Join the conversation</span><kbd aria-hidden="true">↵</kbd></button>
             </form>
-            <p class="login-note"><span class="lock-icon" aria-hidden="true"></span>One shared password. No account to create.</p>
+            <p class="login-note"><span class="lock-icon" aria-hidden="true"></span>Your first sign-in creates your account.</p>
         </section>
         <p class="page-note">A shared space for real conversations.</p>
     </main>
@@ -59,6 +59,7 @@
             <header class="chat-header">
                 <div class="chat-heading"><span class="header-symbol" aria-hidden="true">#</span><div><h1 id="chatTitle" tabindex="-1">General chat</h1><p>A space to stay in the loop.</p></div></div>
                 <div class="chat-actions">
+                    <button id="changePasswordButton" class="keycap secondary-button" type="button" aria-haspopup="dialog" aria-controls="passwordDialog">Password</button>
                     <button id="participantsToggle" class="keycap secondary-button participants-toggle" type="button" aria-label="Show participants" aria-expanded="false" aria-controls="participantsPanel">People <span class="participant-count">0</span></button>
                     <button id="logoutButton" class="keycap secondary-button" type="button">Sign out</button>
                 </div>
@@ -71,8 +72,8 @@
             <div class="controls">
                 <form id="messageForm">
                     <label for="messageInput" class="sr-only">Your message</label>
-                    <textarea id="messageInput" name="message" class="new-message" placeholder="Add to the conversation…" rows="2" required></textarea>
-                    <div class="composer-toolbar"><span>Keep it kind. Keep it you.</span><button type="submit" class="keycap send-message" disabled>Send message <kbd aria-hidden="true">↵</kbd></button></div>
+                    <textarea id="messageInput" name="message" class="new-message" placeholder="Add to the conversation…" rows="2" aria-describedby="messageLength" required></textarea>
+                    <div class="composer-toolbar"><span id="messageLength">0 / 255 characters</span><button type="submit" class="keycap send-message" disabled>Send message <kbd aria-hidden="true">↵</kbd></button></div>
                 </form>
                 <p class="composer-hint"><span id="sendShortcut">Ctrl + Enter</span> to send<span aria-hidden="true"> · </span>Enter for a new line</p>
             </div>
@@ -81,8 +82,36 @@
             <header class="participants-header"><h2 id="participantsTitle">In this space <span class="participant-count">0</span></h2><button id="participantsClose" class="keycap secondary-button participants-close" type="button" aria-label="Close participants">×</button></header>
             <p class="participants-description">People who have joined the chat.</p>
             <div class="users-list" role="list" aria-label="Participants"></div>
-            <div class="space-info"><span class="lock-icon" aria-hidden="true"></span><div><h3>Bring your people.</h3><p>Share the chat link and password to invite someone in.</p></div></div>
+            <div class="space-info"><span class="lock-icon" aria-hidden="true"></span><div><h3>Keep it within your circle.</h3><p>Keep the shared password within your group. Your personal password is only for you.</p></div></div>
         </aside>
+        <div id="messageToast" class="message-toast" hidden>
+            <div role="alert" aria-atomic="true"><strong>Message is too long</strong><p id="messageToastText"></p></div>
+            <button id="closeMessageToast" type="button" aria-label="Dismiss message length error">×</button>
+        </div>
     </main>
+    <dialog id="passwordDialog" class="password-dialog" aria-labelledby="passwordTitle" aria-describedby="changePasswordHint">
+        <form id="changePasswordForm">
+            <h2 id="passwordTitle">Change your password</h2>
+            <p id="changePasswordHint" class="field-hint">Choose a personal password. You will sign in again on all your devices after changing it.</p>
+            <div class="field">
+                <label for="currentPassword">Current password</label>
+                <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="field">
+                <label for="newPassword">New password</label>
+                <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" aria-describedby="newPasswordHint" required>
+                <p id="newPasswordHint" class="field-hint">At least 12 characters, at most 72 UTF-8 bytes. Emoji and non-Latin letters use more than one byte.</p>
+            </div>
+            <div class="field">
+                <label for="confirmPassword">Confirm new password</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required>
+            </div>
+            <p id="passwordMessage" class="feedback" role="alert"></p>
+            <div class="password-actions">
+                <button id="cancelPasswordChange" class="keycap secondary-button" type="button">Cancel</button>
+                <button id="savePassword" class="keycap" type="submit">Save password</button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>
